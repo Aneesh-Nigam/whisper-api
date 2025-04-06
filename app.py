@@ -3,12 +3,16 @@ import whisper
 import os
 
 app = Flask(__name__)
-model = whisper.load_model("base")  # You can choose tiny, base, small, medium, large
+model = whisper.load_model("base")
+
+@app.route("/")
+def index():
+    return "Whisper API is running."
 
 @app.route("/transcribe", methods=["POST"])
-def transcribe_audio():
+def transcribe():
     if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
     file_path = "temp.wav"
@@ -16,12 +20,11 @@ def transcribe_audio():
 
     try:
         result = model.transcribe(file_path)
-        return jsonify({"text": result["text"]})
+        os.remove(file_path)
+        return jsonify({"transcription": result["text"]})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
 
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
